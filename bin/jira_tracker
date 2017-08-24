@@ -12,13 +12,9 @@ end
 
 if ARGV[0] == 'initialize'
 
-  if File.exists?(settings_file)
-    p "#{settings_file} already exists. If you want to change settings delete it or edit it."
-    exit
-  end
-
   settings = {
     'site'        => 'https://your-jira-domain.com',
+    'project_key' => 'MYP1',
     'username'    => 'your-jira-username',
     'password'    => 'your-jira-password',
     'time_track_issue_summary' => 'Time Tracking Ticket'
@@ -26,12 +22,27 @@ if ARGV[0] == 'initialize'
 
   p "Please enter your jira site. (Example: #{settings['site']}):"
   settings['site']     = $stdin.gets.chomp
+  p "Please enter project key. (Example: #{settings['project_key']}):"
+  settings['project_key'] = [$stdin.gets.chomp]
   p 'Please enter your jira username:'
   settings['username'] = $stdin.gets.chomp
   p 'Please enter your jira password:'
   settings['password'] = $stdin.gets.chomp
 
-  File.write(settings_file, settings.to_yaml)
+  dict = File.exist?(settings_file) ? YAML.load_file(settings_file) : []
+  # Migrate from previous config version
+  dict.is_a?(Hash) && dict = [dict]
+
+  # Join project keys for the same site
+  e_settings = dict.index { |x| x['site'] == settings['site'] }
+  if e_settings
+    settings['project_key'] += (dict[e_settings]['project_key'] || [])
+    dict[e_settings].merge!(settings)
+  else
+    dict << settings
+  end
+
+  File.write(settings_file, dict.to_yaml)
   p "Writing #{settings_file}"
   exit
 

@@ -10,6 +10,11 @@ module JiraTracker
   def self.run(issue, time_spent, comment)
     begin
       @config = YAML.load_file "#{Dir.home}/.jira_tracker.yml"
+      @config = @config.find { |x| x['project_key'].include?(issue.split('-').first) }
+      if @config.nil?
+        p 'Project key for the issue not found! Try to initialize config.'
+        exit
+      end
     rescue
       p 'Setting file jira_tracker.yml not found!'
       exit
